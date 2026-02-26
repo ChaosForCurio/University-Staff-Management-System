@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="60" fill="url(#bg-gradient)"/>
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#3730a3" />
+    </linearGradient>
+    <linearGradient id="icon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e0e7ff" />
+    </linearGradient>
+  </defs>
+  <!-- Body shape -->
+  <path d="M72 204C72 173.072 97.0721 148 128 148C158.928 148 184 173.072 184 204" stroke="url(#icon-gradient)" stroke-width="24" stroke-linecap="round" fill="none" />
+  <!-- Head -->
+  <circle cx="128" cy="116" r="32" fill="url(#icon-gradient)" />
+  <!-- Academic Cap Top -->
+  <path d="M128 32L52 68L128 104L204 68L128 32Z" fill="url(#icon-gradient)" opacity="0.9" />
+  <!-- Tassel -->
+  <path d="M204 68V108" stroke="url(#icon-gradient)" stroke-width="8" stroke-linecap="round" />
+  <circle cx="204" cy="116" r="6" fill="url(#icon-gradient)" />
+</svg>

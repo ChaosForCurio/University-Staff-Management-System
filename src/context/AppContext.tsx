@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type StaffStatus = 'Active' | 'Inactive';
 export type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
@@ -31,83 +31,146 @@ interface AppState {
   departments: Department[];
   staff: Staff[];
   attendance: AttendanceRecord[];
+  isLoading: boolean;
+  error: string | null;
 }
 
 interface AppContextType extends AppState {
-  addStaff: (staff: Omit<Staff, 'id'>) => void;
-  updateStaff: (id: string, staff: Partial<Staff>) => void;
-  deleteStaff: (id: string) => void;
-  markAttendance: (record: Omit<AttendanceRecord, 'id'>) => void;
-  updateAttendance: (id: string, updates: Partial<AttendanceRecord>) => void;
+  addStaff: (staff: Omit<Staff, 'id'>) => Promise<void>;
+  updateStaff: (id: string, staff: Partial<Staff>) => Promise<void>;
+  deleteStaff: (id: string) => Promise<void>;
+  markAttendance: (record: Omit<AttendanceRecord, 'id'>) => Promise<void>;
+  updateAttendance: (id: string, updates: Partial<AttendanceRecord>) => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
-const mockDepartments: Department[] = [
-  { id: 'd1', name: 'Computer Science' },
-  { id: 'd2', name: 'Mathematics' },
-  { id: 'd3', name: 'Administration' },
-  { id: 'd4', name: 'Student Services' },
-  { id: 'd5', name: 'Library' },
-];
 
-const mockStaff: Staff[] = [
-  { id: 's1', name: 'Dr. Alan Turing', email: 'alan@university.edu', departmentId: 'd1', role: 'Professor', phone: '555-0101', joiningDate: '2015-08-15', status: 'Active' },
-  { id: 's2', name: 'Ada Lovelace', email: 'ada@university.edu', departmentId: 'd1', role: 'Associate Professor', phone: '555-0102', joiningDate: '2018-01-10', status: 'Active' },
-  { id: 's3', name: 'Carl Gauss', email: 'carl@university.edu', departmentId: 'd2', role: 'Professor', phone: '555-0103', joiningDate: '2010-09-01', status: 'Active' },
-  { id: 's4', name: 'Grace Hopper', email: 'grace@university.edu', departmentId: 'd3', role: 'Registrar', phone: '555-0104', joiningDate: '2020-03-15', status: 'Active' },
-  { id: 's5', name: 'Tim Berners-Lee', email: 'tim@university.edu', departmentId: 'd5', role: 'Head Librarian', phone: '555-0105', joiningDate: '2019-11-20', status: 'Active' },
-];
-
-const mockAttendance: AttendanceRecord[] = [
-  { id: 'a1', staffId: 's1', date: new Date().toISOString().split('T')[0], status: 'Present' },
-  { id: 'a2', staffId: 's2', date: new Date().toISOString().split('T')[0], status: 'Late', remarks: 'Traffic' },
-  { id: 'a3', staffId: 's3', date: new Date().toISOString().split('T')[0], status: 'Present' },
-  { id: 'a4', staffId: 's4', date: new Date().toISOString().split('T')[0], status: 'Absent', remarks: 'Sick leave' },
-];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [departments] = useState<Department[]>(mockDepartments);
-  const [staff, setStaff] = useState<Staff[]>(mockStaff);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(mockAttendance);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addStaff = (newStaff: Omit<Staff, 'id'>) => {
-    const id = `s${Date.now()}`;
-    setStaff((prev) => [...prev, { ...newStaff, id }]);
-  };
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const initRes = await fetch('/api/init');
 
-  const updateStaff = (id: string, updates: Partial<Staff>) => {
-    setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
-  };
+      if (!initRes.ok) {
+        throw new Error('Failed to fetch initial data');
+      }
 
-  const deleteStaff = (id: string) => {
-    setStaff((prev) => prev.filter((s) => s.id !== id));
-    // Also remove attendance records for deleted staff
-    setAttendance((prev) => prev.filter((a) => a.staffId !== id));
-  };
-
-  const markAttendance = (newRecord: Omit<AttendanceRecord, 'id'>) => {
-    const id = `a${Date.now()}`;
-    // Check if record exists for this staff and date
-    const existingIndex = attendance.findIndex(a => a.staffId === newRecord.staffId && a.date === newRecord.date);
-    
-    if (existingIndex >= 0) {
-      setAttendance((prev) => {
-        const updated = [...prev];
-        updated[existingIndex] = { ...updated[existingIndex], ...newRecord };
-        return updated;
-      });
-    } else {
-      setAttendance((prev) => [...prev, { ...newRecord, id }]);
+      const data = await initRes.json();
+      setDepartments(data.departments);
+      setStaff(data.staff);
+      setAttendance(data.attendance);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'An error occurred while loading data');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateAttendance = (id: string, updates: Partial<AttendanceRecord>) => {
-    setAttendance((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)));
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const addStaff = async (newStaff: Omit<Staff, 'id'>) => {
+    try {
+      const res = await fetch('/api/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStaff),
+      });
+      if (!res.ok) throw new Error('Failed to add staff');
+      const savedStaff = await res.json();
+      setStaff((prev) => [...prev, savedStaff]);
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const updateStaff = async (id: string, updates: Partial<Staff>) => {
+    try {
+      const res = await fetch(`/api/staff/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) throw new Error('Failed to update staff');
+      const updatedStaff = await res.json();
+      setStaff((prev) => prev.map((s) => (s.id === id ? updatedStaff : s)));
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const deleteStaff = async (id: string) => {
+    try {
+      const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete staff');
+      setStaff((prev) => prev.filter((s) => s.id !== id));
+      setAttendance((prev) => prev.filter((a) => a.staffId !== id));
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const markAttendance = async (newRecord: Omit<AttendanceRecord, 'id'>) => {
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRecord),
+      });
+      if (!res.ok) throw new Error('Failed to mark attendance');
+      const savedRecord = await res.json();
+
+      setAttendance((prev) => {
+        const existingIndex = prev.findIndex(a => a.staffId === savedRecord.staffId && a.date === savedRecord.date);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = savedRecord;
+          return updated;
+        }
+        return [...prev, savedRecord];
+      });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const updateAttendance = async (id: string, updates: Partial<AttendanceRecord>) => {
+    try {
+      const res = await fetch(`/api/attendance/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) throw new Error('Failed to update attendance');
+      const updatedRecord = await res.json();
+      setAttendance((prev) => prev.map((a) => (a.id === id ? updatedRecord : a)));
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   };
 
   return (
-    <AppContext.Provider value={{ departments, staff, attendance, addStaff, updateStaff, deleteStaff, markAttendance, updateAttendance }}>
+    <AppContext.Provider value={{
+      departments, staff, attendance, isLoading, error,
+      addStaff, updateStaff, deleteStaff, markAttendance, updateAttendance, refreshData: fetchData
+    }}>
       {children}
     </AppContext.Provider>
   );
