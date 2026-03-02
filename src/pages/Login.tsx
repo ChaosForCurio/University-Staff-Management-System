@@ -13,21 +13,28 @@ export const Login: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         setError(false);
 
-        // Artificial delay for premium feel
-        setTimeout(() => {
-            if (login(email, password)) {
+        try {
+            // Artificial delay for premium feel
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            const success = await login(email, password);
+            if (success) {
                 const from = (location.state as any)?.from?.pathname || '/';
                 navigate(from, { replace: true });
             } else {
                 setError(true);
                 setIsSubmitting(false);
             }
-        }, 800);
+        } catch (err) {
+            console.error("Login Error:", err);
+            setError(true);
+            setIsSubmitting(false);
+        }
     };
 
     return (

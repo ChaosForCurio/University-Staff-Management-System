@@ -7,7 +7,7 @@ export const Header: React.FC<{ onMenuClick: () => void }> = ({ onMenuClick }) =
   const { logout, userEmail, userUuid, userRole } = useAuth();
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm sticky top-0 z-20 transition-colors">
+    <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-white/10 dark:border-slate-800/50 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] sticky top-0 z-20 transition-all duration-300">
       <div className="flex items-center flex-1">
         <button
           onClick={onMenuClick}
@@ -43,7 +43,7 @@ export const Header: React.FC<{ onMenuClick: () => void }> = ({ onMenuClick }) =
                   "px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider border",
                   userRole === 'Admin'
                     ? "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
-                    : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                    : "bg-slate-500/10 text-slate-500 border-slate-500/20"
                 )}>
                   {userRole}
                 </span>

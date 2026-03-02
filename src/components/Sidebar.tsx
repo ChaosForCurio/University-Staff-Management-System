@@ -32,16 +32,18 @@ export const Sidebar: React.FC<{ isOpen: boolean; close: () => void }> = ({ isOp
       {/* Sidebar component */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-[#0B1120] text-slate-600 dark:text-slate-400 flex flex-col border-r border-slate-200 dark:border-slate-800/60 transform transition-transform duration-300 ease-in-out md:w-64",
+          "fixed inset-y-0 left-0 z-40 w-72 glass-panel text-slate-600 dark:text-slate-400 flex flex-col border-r border-white/10 dark:border-slate-800/60 transform transition-transform duration-300 ease-in-out md:w-64",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800/60 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
-          <div className="flex items-center">
-            <GraduationCap className="h-8 w-8 text-indigo-600 dark:text-indigo-500 mr-3" />
-            <span className="text-slate-900 dark:text-white font-semibold text-lg tracking-tight">UniStaff</span>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 dark:border-slate-800/60 transition-colors">
+          <div className="flex items-center group">
+            <div className="p-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mr-3 group-hover:scale-110 transition-transform duration-300">
+              <GraduationCap className="h-6 w-6 text-indigo-500" />
+            </div>
+            <span className="text-slate-900 dark:text-white font-bold text-xl tracking-tight text-gradient">UniStaff</span>
           </div>
-          <button onClick={close} className="md:hidden p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <button onClick={close} className="md:hidden p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -82,7 +84,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; close: () => void }> = ({ isOp
             <div className="ml-3 overflow-hidden">
               <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{userEmail || 'Admin User'}</p>
               <div className="flex items-center gap-1.5 min-w-0">
-                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{userRole || 'System Admin'}</p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{userRole || 'Normal'}</p>
                 {userRole === 'Admin' && <div className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />}
               </div>
             </div>
