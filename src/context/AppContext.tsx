@@ -32,6 +32,7 @@ interface AppState {
   staff: Staff[];
   attendance: AttendanceRecord[];
   isLoading: boolean;
+  isMutating: boolean;
   error: string | null;
 }
 
@@ -42,6 +43,7 @@ interface AppContextType extends AppState {
   markAttendance: (record: Omit<AttendanceRecord, 'id'>) => Promise<void>;
   updateAttendance: (id: string, updates: Partial<AttendanceRecord>) => Promise<void>;
   refreshData: () => Promise<void>;
+  isMutating: boolean;
 }
 
 
@@ -53,6 +55,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [staff, setStaff] = useState<Staff[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -83,57 +86,85 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const addStaff = async (newStaff: Omit<Staff, 'id'>) => {
     try {
+      setIsMutating(true);
+      setError(null);
       const res = await fetch('/api/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStaff),
       });
-      if (!res.ok) throw new Error('Failed to add staff');
-      const savedStaff = await res.json();
-      setStaff((prev) => [...prev, savedStaff]);
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add staff');
+
+      setStaff((prev) => [...prev, data]);
     } catch (err) {
       console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to add staff';
+      setError(msg);
       throw err;
+    } finally {
+      setIsMutating(false);
     }
   };
 
   const updateStaff = async (id: string, updates: Partial<Staff>) => {
     try {
+      setIsMutating(true);
+      setError(null);
       const res = await fetch(`/api/staff/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error('Failed to update staff');
-      const updatedStaff = await res.json();
-      setStaff((prev) => prev.map((s) => (s.id === id ? updatedStaff : s)));
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update staff');
+
+      setStaff((prev) => prev.map((s) => (s.id === id ? data : s)));
     } catch (err) {
       console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to update staff';
+      setError(msg);
       throw err;
+    } finally {
+      setIsMutating(false);
     }
   };
 
   const deleteStaff = async (id: string) => {
     try {
+      setIsMutating(true);
+      setError(null);
       const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete staff');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete staff');
+      }
       setStaff((prev) => prev.filter((s) => s.id !== id));
       setAttendance((prev) => prev.filter((a) => a.staffId !== id));
     } catch (err) {
       console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to delete staff';
+      setError(msg);
       throw err;
+    } finally {
+      setIsMutating(false);
     }
   };
 
   const markAttendance = async (newRecord: Omit<AttendanceRecord, 'id'>) => {
     try {
+      setIsMutating(true);
+      setError(null);
       const res = await fetch('/api/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRecord),
       });
-      if (!res.ok) throw new Error('Failed to mark attendance');
+
       const savedRecord = await res.json();
+      if (!res.ok) throw new Error(savedRecord.error || 'Failed to mark attendance');
 
       setAttendance((prev) => {
         const existingIndex = prev.findIndex(a => a.staffId === savedRecord.staffId && a.date === savedRecord.date);
@@ -146,7 +177,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       });
     } catch (err) {
       console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to mark attendance';
+      setError(msg);
       throw err;
+    } finally {
+      setIsMutating(false);
     }
   };
 
@@ -168,7 +203,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{
-      departments, staff, attendance, isLoading, error,
+      departments, staff, attendance, isLoading, isMutating, error,
       addStaff, updateStaff, deleteStaff, markAttendance, updateAttendance, refreshData: fetchData
     }}>
       {children}

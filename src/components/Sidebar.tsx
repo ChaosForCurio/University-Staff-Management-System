@@ -4,8 +4,10 @@ import { LayoutDashboard, Users, CalendarCheck, FileText, GraduationCap, Setting
 import { cn } from '../utils/cn';
 
 import { X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const Sidebar: React.FC<{ isOpen: boolean; close: () => void }> = ({ isOpen, close }) => {
+  const { userRole, userEmail } = useAuth();
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/staff', icon: Users, label: 'Staff Directory' },
@@ -69,12 +71,20 @@ export const Sidebar: React.FC<{ isOpen: boolean; close: () => void }> = ({ isOp
         </nav>
         <div className="p-4 border-t border-slate-200 dark:border-slate-800/60">
           <div className="flex items-center">
-            <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-medium">
-              AD
+            <div className={cn(
+              "h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm border",
+              userRole === 'Admin'
+                ? "bg-gradient-to-tr from-amber-500 to-orange-600 text-white border-white/10"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent"
+            )}>
+              {userEmail ? userEmail.charAt(0).toUpperCase() : 'A'}
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">Admin User</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">System Admin</p>
+            <div className="ml-3 overflow-hidden">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{userEmail || 'Admin User'}</p>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{userRole || 'System Admin'}</p>
+                {userRole === 'Admin' && <div className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />}
+              </div>
             </div>
           </div>
         </div>

@@ -3,13 +3,20 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import { sql, initDB } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load .env.local file from the project root
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+const envPath = path.resolve(__dirname, '..', '.env.local');
+const result = dotenv.config({ path: envPath });
+
+// Initialize DB on startup
+initDB().catch(err => {
+    console.error('Critical Database Initialization Failure:', err.message);
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,8 +24,16 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize DB on startup
-initDB().catch(console.error);
+// Middleware for logging requests
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Routes
 // Batch Initial Data Route for faster loading
@@ -74,11 +89,17 @@ app.get('/api/staff', async (req, res) => {
 
 app.post('/api/staff', async (req, res) => {
     const { name, email, departmentId, role, phone, joiningDate, status } = req.body;
-    const id = `s${Date.now()}`; // Simple ID generation
+
+    // Simple validation
+    if (!name || !email || !role) {
+        return res.status(400).json({ error: 'Missing required fields: name, email, and role are mandatory' });
+    }
+
+    const id = crypto.randomUUID();
     try {
         const newStaff = await sql`
             INSERT INTO staff(id, name, email, department_id, role, phone, joining_date, status)
-    VALUES(${id}, ${name}, ${email}, ${departmentId}, ${role}, ${phone}, ${joiningDate}, ${status})
+            VALUES(${id}, ${name}, ${email}, ${departmentId}, ${role}, ${phone}, ${joiningDate}, ${status})
             RETURNING id, name, email, department_id as "departmentId", role, phone, TO_CHAR(joining_date, 'YYYY-MM-DD') as "joiningDate", status
         `;
         res.status(201).json(newStaff[0]);
@@ -144,7 +165,12 @@ app.get('/api/attendance', async (req, res) => {
 
 app.post('/api/attendance', async (req, res) => {
     const { staffId, date, status, remarks } = req.body;
-    const id = `a${Date.now()}`;
+
+    if (!staffId || !date || !status) {
+        return res.status(400).json({ error: 'Missing required fields: staffId, date, and status are mandatory' });
+    }
+
+    const id = crypto.randomUUID();
 
     try {
         // Check if record exists for this date and staff
@@ -192,6 +218,21 @@ app.put('/api/attendance/:id', async (req, res) => {
         console.error(err);
         res.status(500).json({ error: 'Failed to update attendance' });
     }
+});
+
+// Global Error Handling Middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled Server Error:', {
+        message: err.message,
+        stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack,
+        path: req.path,
+        method: req.method
+    });
+
+    res.status(500).json({
+        error: 'An internal server error occurred',
+        message: process.env.NODE_ENV === 'production' ? null : err.message
+    });
 });
 
 app.listen(PORT, () => {

@@ -4,13 +4,28 @@ import ws from 'ws';
 // Required for Neon serverless pool in Node.js
 neonConfig.webSocketConstructor = ws;
 
-export const pool = new Pool({ connectionString: process.env.neon_db_url || 'postgresql://neondb_owner:npg_LBol94mWHKtS@ep-royal-mode-aitaukod-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require' });
+export const pool = new Pool({
+    connectionString: process.env.neon_db_url || 'postgresql://neondb_owner:npg_LBol94mWHKtS@ep-royal-mode-aitaukod-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
+});
+
+if (!process.env.neon_db_url) {
+    console.error('CRITICAL: neon_db_url is not defined in environment variables.');
+}
 
 // Create a helper that mimics the previous `sql` tagged template literal
 export const sql = async (strings, ...values) => {
     const text = strings.reduce((prev, curr, i) => prev + curr + (i < values.length ? `$${i + 1}` : ''), '');
-    const { rows } = await pool.query(text, values);
-    return rows;
+    try {
+        const { rows } = await pool.query(text, values);
+        return rows;
+    } catch (err) {
+        console.error('Database Query Error:', {
+            text,
+            values,
+            error: err.message
+        });
+        throw new Error(`Database operation failed: ${err.message}`);
+    }
 };
 
 export const initDB = async () => {
